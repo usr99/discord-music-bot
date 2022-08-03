@@ -5,10 +5,10 @@ import * as commandModules from "./commands";
 import { SlashCommandBuilder } from "discord.js";
 
 type Command = {
-	data: SlashCommandBuilder
+	data: Omit<SlashCommandBuilder, any>
 }
 
-const commands: SlashCommandBuilder[] = [];
+const commands: Omit<SlashCommandBuilder, any>[] = [];
 for (const module of Object.values<Command>(commandModules)) {
 	commands.push(module.data);
 }
