@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node build/index.js",
     "dev": "concurrently \"tsc -w\" \"nodemon build/index.js\"",
-	"deploy": "tsc && node build/deploy-commands.js"
+    "deploy": "tsc && node build/deploy-commands.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
   "dependencies": {
     "@discordjs/builders": "^1.1.0",
     "@discordjs/rest": "^1.0.1",
+    "axios": "^0.27.2",
     "concurrently": "^7.3.0",
     "discord.js": "^14.1.2",
     "dotenv": "^16.0.1",

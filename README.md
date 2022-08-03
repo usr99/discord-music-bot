@@ -19,7 +19,4 @@ SPOTIFY_CLIENT_CALLBACK=
 
 # Youtube API
 YOUTUBE_API_KEY=
-
-# HTTP server configuration
-PORT=
 ```

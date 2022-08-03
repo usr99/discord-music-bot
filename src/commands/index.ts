@@ -1,1 +1,1 @@
-export * as ping from "./ping";
+export * as play from "./play";
