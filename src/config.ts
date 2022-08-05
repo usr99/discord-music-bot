@@ -7,7 +7,6 @@ const {
 	GUILD_ID,
 	SPOTIFY_CLIENT_ID,
 	SPOTIFY_CLIENT_SECRET,
-	SPOTIFY_CLIENT_CALLBACK
 } = process.env;
 
 if (
@@ -15,8 +14,7 @@ if (
 	!CLIENT_ID ||
 	!GUILD_ID ||
 	!SPOTIFY_CLIENT_ID ||
-	!SPOTIFY_CLIENT_SECRET ||
-	!SPOTIFY_CLIENT_CALLBACK
+	!SPOTIFY_CLIENT_SECRET
 ) throw new Error("Missing environment variables");
 
 const config: Record<string, string> = {
@@ -25,7 +23,6 @@ const config: Record<string, string> = {
 	GUILD_ID,
 	SPOTIFY_CLIENT_ID,
 	SPOTIFY_CLIENT_SECRET,
-	SPOTIFY_CLIENT_CALLBACK
 };
 
 export default config;
