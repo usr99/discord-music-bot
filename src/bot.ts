@@ -24,8 +24,16 @@ bot.on('interactionCreate', async interaction => {
 		return ;
 	}
 
-	const { commandName } = interaction;
-	commands[commandName].execute(interaction);
+	try {
+		const { commandName } = interaction;
+		await commands[commandName].execute(interaction);
+	} catch (err) {
+		if (err instanceof Error) {
+			interaction.reply(err.message);
+		} else {
+			interaction.reply('Unexpected error, you may check logs for more information');
+		}
+	}
 });
 
 bot.login(config.DISCORD_TOKEN);

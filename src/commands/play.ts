@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction } from "discord.js";
+import { CommandInteraction, GuildMember } from "discord.js";
+import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
 
 export const data = new SlashCommandBuilder()
@@ -12,12 +13,18 @@ export const data = new SlashCommandBuilder()
 			.setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
+	/* Fetch track info */
 	const spotify = SpotifyGateway.getInstance();
+	const info = await spotify.fetchTrack(interaction.options.get('title', true).value as string);
 	
-	spotify.fetchTrack(interaction.options.get('title', true).value as string)
-		.then(info => interaction.reply(JSON.stringify(info)))
-		.catch(err => interaction.reply(err));
+	/* Voice channel connection */
+	const player = MusicPlayer.getInstance();
+	if (!(interaction.member instanceof GuildMember)) {
+		throw new Error('Failed to find your voice channel');
+	}
+	await player.connectToChannel(interaction.member);
 
-	// download stream
-	// add to queue
+	/* Play song */
+	interaction.reply('Downloading track...');
+	await player.addToQueue([info]);
 }
