@@ -1,6 +1,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
 import { AxiosError } from "axios";
 import { GuildMember } from "discord.js";
+import EventEmitter from "events";
 import { Track } from "./SpotifyGateway";
 import { LogError } from "./utils";
 
@@ -8,30 +9,23 @@ export default class MusicPlayer {
 	private queue: Track[];
 	private player: AudioPlayer;
 	private guildId: string | null;
+	private eventHandler: EventEmitter;
 
 	private constructor() {
 		this.queue = [];
 		this.player = createAudioPlayer();
 		this.guildId = null;
+		this.eventHandler = new EventEmitter;
+
+		this.player.on(AudioPlayerStatus.Idle, async () => {
+			this.queue.shift();
+			this.next();
+		});
 	}
 
-	public async addToQueue(tracks: TrackInfo[]) {
-		for (let info of tracks) {
-			try {
-				///////////////////////////////////////////////////
-				const spotify = new Spotify({
-					clientId: config.SPOTIFY_CLIENT_ID,
-					clientSecret: config.SPOTIFY_CLIENT_SECRET
-				});
-				///////////////////////////////////////////////////
-				const buffer = await spotify.downloadTrack(info.url);
-				const audio = createAudioResource(Readable.from(buffer));
-				this.queue.push({ audio, info });
-			} catch(err) {
-				LogAxiosError(err as AxiosError);
-				throw new Error(`Failed to download ${info.title}. Previous tracks, if any, were added to queue anyway.`);
-			}
-		}
+	public on(event: string, cb: (...args: any[]) => void) {
+		this.eventHandler.on(event, cb);
+	}
 
 	public async addToQueue(tracks: Track[]) {
 		this.queue.push(...tracks);
@@ -73,6 +67,7 @@ export default class MusicPlayer {
 			this.player.play(audio);
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5e3);
+				this.eventHandler.emit('trackChange', track.info.title);
 			} catch {
 				this.stop();
 				throw new Error(`Failed to play ${track.info.title}`);
@@ -87,12 +82,7 @@ export default class MusicPlayer {
 	}
 
 	public stop() {
-		// this.client.setActivity({
-			// type: ActivityTypes.LISTENING,
-			// name: 'rien de spécial'
-		// });
-
-		this.clear();
+		this.eventHandler.emit('trackChange', 'rien de spécial');
 		this.player.stop();
 		if (this.guildId) {
 			getVoiceConnection(this.guildId)?.destroy();
