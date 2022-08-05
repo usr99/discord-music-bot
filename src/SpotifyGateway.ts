@@ -2,11 +2,12 @@ import axios, { AxiosError } from "axios";
 import config from "./config";
 import { LogAxiosError } from "./utils";
 
-class TrackInfo {
-	public constructor(info: { id: string, name: string, duration_ms: number, artists: any[] }) {
+export class TrackInfo {
+	public constructor(info: any ) {
 		this.id = info.id;
-		this.name = info.name;
+		this.title = info.name;
 		this.duration = info.duration_ms;
+		this.url = info.external_urls.spotify;
 		this.artists = [];
 		for (let artist of info.artists) {
 			this.artists.push(artist.name);
@@ -14,56 +15,62 @@ class TrackInfo {
 	}
 
 	public id: string;
-	public name: string;
+	public title: string;
 	public artists: string[];
 	public duration: number;
+	public url: string;
 }
 
 export default class SpotifyGateway {
 	private constructor() {
-		this.access_token = 'BQDMT5X9J_lb52xf3bD1FQVt8-Ym1M95oeEj3q6VgHNPvWY3-k_vul-cpgTI_rOFeZ3knCDcJSAdaPNz6PkeoJ0O5xu4jd8IFyWTLyFecSmA8rbpF6o';
-		// this.getAccessToken().then(token => this.access_token = token);
+		this.access_token = null;
+		this.getAccessToken().then(token => this.access_token = token);
 	}
 
 	public async fetchTrack(query: string): Promise<TrackInfo> {
-		return new Promise<TrackInfo>(async (resolve, reject) => {
-			
+		let first_try = true;
+		while (true) {
 			if (!this.access_token) {
-				try {
-					this.access_token = await this.getAccessToken();
-				} catch {
-					reject('Failed to get an access token from Spotify API');
-				}
+				this.access_token = await this.getAccessToken();
 			}
 			
-			axios.get('https://api.spotify.com/v1/search', {
-				params: {
-					q: query,
-					type: 'track',
-					limit: 1
-				},
-				headers: {
-					Authorization: `Bearer ${this.access_token}`,
-					'Content-Type': 'application/json'
+			try {
+				const response = await axios.get('https://api.spotify.com/v1/search', {
+					params: {
+						q: query,
+						type: 'track',
+						limit: 1
+					},
+					headers: {
+						Authorization: `Bearer ${this.access_token}`,
+						'Content-Type': 'application/json'
+					}
+				});
+				return new TrackInfo(response.data.tracks.items.at(0));
+			} catch (err) {
+				const error = err as AxiosError;
+				LogAxiosError(error);
+				if (error.response) {
+					if (error.response.status === 401) {
+						if (!first_try) {
+							throw new Error('Failure when attempting to connect to Spotify');
+						}
+						first_try = false;
+						this.access_token = null;
+						continue ;
+					} else if (error.response.status === 429) {
+						throw new Error('Rate limit exceeded');
+					}
 				}
-			})
-			.then(response => {
-				resolve(new TrackInfo(response.data.tracks.items.at(0)));
-			})
-			.catch(err => {
-				LogAxiosError(err);
-
-				// check for expired token
-
-				reject('failed to fetch track');
-			});
-		});
+				throw new Error('Search request failed');
+			}
+		}
 	}
 
 	private async getAccessToken(): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
+		try {
 			const auth_string = Buffer.from(config.SPOTIFY_CLIENT_ID + ':' + config.SPOTIFY_CLIENT_SECRET).toString('base64');
-			axios.request({
+			const response = await axios.request({
 				method: 'post',
 				url: 'https://accounts.spotify.com/api/token',
 				headers: {
@@ -71,18 +78,15 @@ export default class SpotifyGateway {
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				data: 'grant_type=client_credentials'
-			})
-			.then(response => {
-				if (!response.data.access_token) {
-					reject();
-				}
-				resolve(response.data.access_token);
-			})
-			.catch((err: Error | AxiosError) => {
-				LogAxiosError(err);
-				reject();
 			});
-		});
+			if (!response.data.access_token) {
+				throw new Error('Failure when attempting to connect to Spotify');
+			}
+			return response.data.access_token;
+		} catch(err) {
+			LogAxiosError(err as AxiosError);
+			throw new Error('Failure when attempting to connect to Spotify');
+		}
 	}
 
 	private access_token: string | null;
