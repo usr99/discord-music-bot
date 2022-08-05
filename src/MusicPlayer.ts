@@ -1,19 +1,11 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
 import { AxiosError } from "axios";
 import { GuildMember } from "discord.js";
-import { TrackInfo } from "./SpotifyGateway";
-import { LogAxiosError } from "./utils";
-import Spotify from "spotifydl-core/dist";
-import config from "./config";
-import { Readable } from "stream";
-
-type TrackStream = {
-	audio: AudioResource,
-	info: TrackInfo
-}
+import { Track } from "./SpotifyGateway";
+import { LogError } from "./utils";
 
 export default class MusicPlayer {
-	private queue: TrackStream[];
+	private queue: Track[];
 	private player: AudioPlayer;
 	private guildId: string | null;
 
@@ -41,6 +33,8 @@ export default class MusicPlayer {
 			}
 		}
 
+	public async addToQueue(tracks: Track[]) {
+		this.queue.push(...tracks);
 		if (this.player.state.status === AudioPlayerStatus.Idle) {
 			this.next();
 		}
@@ -64,22 +58,9 @@ export default class MusicPlayer {
 			try {
 				await entersState(connection, VoiceConnectionStatus.Ready, 30e3);
 				connection.subscribe(this.player);
-
-				connection.on('stateChange', (oldState, newState) => {
-					console.log(`Connection went from ${oldState.status} to ${newState.status}`);
-				});
-				connection.on(VoiceConnectionStatus.Signalling, () => {
-					const timeout = () => { setTimeout(() => {
-						connection?.rejoin();
-						console.log(connection?.rejoinAttempts);
-						timeout();
-					}, 5000); }
-					timeout();					
-				});
-
 			} catch (error) {
 				this.stop();
-				LogAxiosError(error as AxiosError);
+				LogError(error as AxiosError);
 				throw new Error('Failed to establish a voice connection');
 			}
 		}
@@ -88,22 +69,16 @@ export default class MusicPlayer {
 	public async next() {
 		const track = this.queue.at(0);
 		if (track) {
-			this.player.play(track.audio);
-
-			// this.connection.on(VoiceConnectionStatus.Disconnected, () => {
-			// 	console.error('Fuck! Lost contact! Mayday!');
-			// });
-			// const timeout = () => { setTimeout(() => {
-			// 	console.log(`${track.audio.playbackDuration} ${this.player.state.status} ${getVoiceConnection(this.guildId || 'fezf' )?.state.status}`)
-			// 	timeout();
-			// }, 1000)};
-			// timeout();
-
+			const audio = createAudioResource(track.buffer);
+			this.player.play(audio);
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5e3);
 			} catch {
+				this.stop();
 				throw new Error(`Failed to play ${track.info.title}`);
 			}
+		} else {
+			this.stop();
 		}
 	}
 

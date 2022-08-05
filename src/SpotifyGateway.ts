@@ -1,8 +1,11 @@
 import axios, { AxiosError } from "axios";
+import Spotify from "spotifydl-core/dist";
+import SpotifyFetcher from "spotifydl-core/dist/Spotify";
+import { Readable } from "stream";
 import config from "./config";
-import { LogAxiosError } from "./utils";
+import { LogError } from "./utils";
 
-export class TrackInfo {
+class TrackInfo {
 	public constructor(info: any ) {
 		this.id = info.id;
 		this.title = info.name;
@@ -21,10 +24,29 @@ export class TrackInfo {
 	public url: string;
 }
 
+export type Track = {
+	buffer: Readable,
+	info: TrackInfo
+}
+
 export default class SpotifyGateway {
 	private constructor() {
+		this.downloader = new Spotify({
+			clientId: config.SPOTIFY_CLIENT_ID,
+			clientSecret: config.SPOTIFY_CLIENT_SECRET
+		});
 		this.access_token = null;
 		this.getAccessToken().then(token => this.access_token = token);
+	}
+
+	public async downloadTrack(info: TrackInfo): Promise<Track> {
+		try {
+			const buffer = await this.downloader.downloadTrack(info.url);
+			return { buffer: Readable.from(buffer), info };
+		} catch(err) {
+			LogError(err as AxiosError);
+			throw new Error(`Failed to download ${info.title}`);
+		}
 	}
 
 	public async fetchTrack(query: string): Promise<TrackInfo> {
@@ -49,7 +71,7 @@ export default class SpotifyGateway {
 				return new TrackInfo(response.data.tracks.items.at(0));
 			} catch (err) {
 				const error = err as AxiosError;
-				LogAxiosError(error);
+				LogError(error);
 				if (error.response) {
 					if (error.response.status === 401) {
 						if (!first_try) {
@@ -62,7 +84,7 @@ export default class SpotifyGateway {
 						throw new Error('Rate limit exceeded');
 					}
 				}
-				throw new Error('Search request failed');
+				throw new Error('Search request to Spotify services failed');
 			}
 		}
 	}
@@ -84,11 +106,12 @@ export default class SpotifyGateway {
 			}
 			return response.data.access_token;
 		} catch(err) {
-			LogAxiosError(err as AxiosError);
+			LogError(err as AxiosError);
 			throw new Error('Failure when attempting to connect to Spotify');
 		}
 	}
 
+	private downloader: SpotifyFetcher;
 	private access_token: string | null;
 
 	public static getInstance(): SpotifyGateway {

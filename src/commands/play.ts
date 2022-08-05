@@ -13,18 +13,19 @@ export const data = new SlashCommandBuilder()
 			.setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
-	/* Fetch track info */
+	/* Fetch track */
 	const spotify = SpotifyGateway.getInstance();
 	const info = await spotify.fetchTrack(interaction.options.get('title', true).value as string);
-	
-	/* Voice channel connection */
+	interaction.reply(`Enjoy listening to ${info.title}`);
+
+	/* Update the song queue */
+	const track = await spotify.downloadTrack(info);
 	const player = MusicPlayer.getInstance();
+	await player.addToQueue([track]);
+
+	/* Voice channel connection */
 	if (!(interaction.member instanceof GuildMember)) {
 		throw new Error('Failed to find your voice channel');
 	}
 	await player.connectToChannel(interaction.member);
-
-	/* Play song */
-	interaction.reply('Downloading track...');
-	await player.addToQueue([info]);
 }

@@ -1,6 +1,6 @@
 import axios, { AxiosError } from "axios";
 
-function LogAxiosError(error: Error | AxiosError) {
+function LogError(error: Error | AxiosError) {
 	const GetStringTimestamp = () => {
 		let now = new Date();
 		return `[${now.toLocaleDateString()} ${now.toLocaleTimeString()}]`;
@@ -29,4 +29,4 @@ function LogAxiosError(error: Error | AxiosError) {
 	}
 }
 
-export { LogAxiosError };
+export { LogError };

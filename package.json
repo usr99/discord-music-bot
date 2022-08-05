@@ -6,7 +6,6 @@
   "scripts": {
     "build": "tsc",
     "start": "tsc && node build/index.js",
-    "dev": "concurrently \"tsc -w\" \"nodemon build/index.js\"",
     "deploy": "tsc && node build/deploy-commands.js"
   },
   "repository": {
