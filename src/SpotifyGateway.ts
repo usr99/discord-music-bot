@@ -5,11 +5,10 @@ import { Readable } from "stream";
 import config from "./config";
 import { LogError } from "./utils";
 
-class TrackInfo {
-	public constructor(info: any ) {
+class Info {
+	public constructor(info: any) {
 		this.id = info.id;
 		this.title = info.name;
-		this.duration = info.duration_ms;
 		this.url = info.external_urls.spotify;
 		this.artists = [];
 		for (let artist of info.artists) {
@@ -20,8 +19,17 @@ class TrackInfo {
 	public id: string;
 	public title: string;
 	public artists: string[];
-	public duration: number;
 	public url: string;
+}
+
+class TrackInfo extends Info {
+	public constructor(info: any) {
+		super(info);
+		this.duration = info.duration_ms;
+	}
+
+	public duration: number;
+}
 }
 
 export type Track = {
