@@ -2,8 +2,8 @@ import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, creat
 import { AxiosError } from "axios";
 import { GuildMember } from "discord.js";
 import EventEmitter from "events";
-import { Track } from "./SpotifyGateway";
-import { LogError } from "./utils";
+import { Track } from "./types";
+import { LogError,  } from "./utils";
 
 export default class MusicPlayer {
 	private queue: Track[];

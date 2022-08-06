@@ -3,59 +3,8 @@ import Spotify from "spotifydl-core/dist";
 import SpotifyFetcher from "spotifydl-core/dist/Spotify";
 import { Readable } from "stream";
 import config from "./config";
+import { AlbumInfo, SpotifySearchResponse, Track, TrackInfo } from "./types";
 import { LogError } from "./utils";
-
-type SearchResponse = {
-	id: string,
-	name: string,
-	external_urls: {
-		spotify: string
-	},
-	artists: {
-		name: string	
-	}[],
-	duration_ms: number
-}
-
-class Info {
-	public constructor(info: SearchResponse) {
-		this.id = info.id;
-		this.title = info.name;
-		this.url = info.external_urls.spotify;
-		this.artists = [];
-		for (let artist of info.artists) {
-			this.artists.push(artist.name);
-		}
-	}
-
-	public id: string;
-	public title: string;
-	public artists: string[];
-	public url: string;
-}
-
-class TrackInfo extends Info {
-	public constructor(info: SearchResponse) {
-		super(info);
-		this.duration = info.duration_ms;
-	}
-
-	public duration: number;
-}
-
-class AlbumInfo extends Info {
-	public constructor(info: SearchResponse) {
-		super(info);
-		this.tracks = [];
-	}
-
-	public tracks: TrackInfo[];
-}
-
-export type Track = {
-	buffer: Readable,
-	info: TrackInfo
-}
 
 export default class SpotifyGateway {
 	private constructor() {
@@ -90,7 +39,7 @@ export default class SpotifyGateway {
 				headers: { Authorization: `Bearer ${this.access_token}` }
 			});
 
-			const tracks: SearchResponse[] = response.data.tracks.items;
+			const tracks: SpotifySearchResponse[] = response.data.tracks.items;
 			for (let track of tracks) {
 				info.tracks.push(new TrackInfo(track));
 			}
@@ -101,7 +50,7 @@ export default class SpotifyGateway {
 		return info;
 	}
 
-	private async search(query: string, type: string): Promise<SearchResponse> {
+	private async search(query: string, type: string): Promise<SpotifySearchResponse> {
 		let first_try = true;
 		while (true) {
 			if (!this.access_token) {

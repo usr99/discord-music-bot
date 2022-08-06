@@ -7,6 +7,7 @@ const {
 	GUILD_ID,
 	SPOTIFY_CLIENT_ID,
 	SPOTIFY_CLIENT_SECRET,
+	YOUTUBE_API_KEY
 } = process.env;
 
 if (
@@ -14,8 +15,9 @@ if (
 	!CLIENT_ID ||
 	!GUILD_ID ||
 	!SPOTIFY_CLIENT_ID ||
-	!SPOTIFY_CLIENT_SECRET
-) throw new Error("Missing environment variables");
+	!SPOTIFY_CLIENT_SECRET ||
+	!YOUTUBE_API_KEY
+	) throw new Error("Missing environment variables");
 
 const config: Record<string, string> = {
 	DISCORD_TOKEN,
@@ -23,6 +25,7 @@ const config: Record<string, string> = {
 	GUILD_ID,
 	SPOTIFY_CLIENT_ID,
 	SPOTIFY_CLIENT_SECRET,
+	YOUTUBE_API_KEY
 };
 
 export default config;
