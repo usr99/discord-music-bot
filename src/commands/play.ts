@@ -21,7 +21,7 @@ export async function execute(interaction: CommandInteraction) {
 	/* Update the song queue */
 	const track = await spotify.downloadTrack(info);
 	const player = MusicPlayer.getInstance();
-	await player.addToQueue([track]);
+	await player.addToQueue(track);
 
 	/* Voice channel connection */
 	if (!(interaction.member instanceof GuildMember)) {

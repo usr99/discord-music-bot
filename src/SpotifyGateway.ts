@@ -5,8 +5,20 @@ import { Readable } from "stream";
 import config from "./config";
 import { LogError } from "./utils";
 
+type SearchResponse = {
+	id: string,
+	name: string,
+	external_urls: {
+		spotify: string
+	},
+	artists: {
+		name: string	
+	}[],
+	duration_ms: number
+}
+
 class Info {
-	public constructor(info: any) {
+	public constructor(info: SearchResponse) {
 		this.id = info.id;
 		this.title = info.name;
 		this.url = info.external_urls.spotify;
@@ -23,7 +35,7 @@ class Info {
 }
 
 class TrackInfo extends Info {
-	public constructor(info: any) {
+	public constructor(info: SearchResponse) {
 		super(info);
 		this.duration = info.duration_ms;
 	}
@@ -58,6 +70,11 @@ export default class SpotifyGateway {
 	}
 
 	public async fetchTrack(query: string): Promise<TrackInfo> {
+		const response = await this.search(query, 'track');
+		return new TrackInfo(response);
+	}
+
+	private async search(query: string, type: string): Promise<SearchResponse> {
 		let first_try = true;
 		while (true) {
 			if (!this.access_token) {
@@ -68,7 +85,7 @@ export default class SpotifyGateway {
 				const response = await axios.get('https://api.spotify.com/v1/search', {
 					params: {
 						q: query,
-						type: 'track',
+						type: type,
 						limit: 1
 					},
 					headers: {
@@ -76,7 +93,7 @@ export default class SpotifyGateway {
 						'Content-Type': 'application/json'
 					}
 				});
-				return new TrackInfo(response.data.tracks.items.at(0));
+				return response.data.tracks.items.at(0);
 			} catch (err) {
 				const error = err as AxiosError;
 				LogError(error);

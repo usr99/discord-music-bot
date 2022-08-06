@@ -27,8 +27,8 @@ export default class MusicPlayer {
 		this.eventHandler.on(event, cb);
 	}
 
-	public async addToQueue(tracks: Track[]) {
-		this.queue.push(...tracks);
+	public async addToQueue(track: Track) {
+		this.queue.push(track);
 		if (this.player.state.status === AudioPlayerStatus.Idle) {
 			this.next();
 		}
