@@ -42,6 +42,14 @@ class TrackInfo extends Info {
 
 	public duration: number;
 }
+
+class AlbumInfo extends Info {
+	public constructor(info: SearchResponse) {
+		super(info);
+		this.tracks = [];
+	}
+
+	public tracks: TrackInfo[];
 }
 
 export type Track = {
@@ -56,7 +64,6 @@ export default class SpotifyGateway {
 			clientSecret: config.SPOTIFY_CLIENT_SECRET
 		});
 		this.access_token = null;
-		this.getAccessToken().then(token => this.access_token = token);
 	}
 
 	public async downloadTrack(info: TrackInfo): Promise<Track> {
@@ -72,6 +79,26 @@ export default class SpotifyGateway {
 	public async fetchTrack(query: string): Promise<TrackInfo> {
 		const response = await this.search(query, 'track');
 		return new TrackInfo(response);
+	}
+
+	public async fetchAlbum(query: string): Promise<AlbumInfo> {
+		const response = await this.search(query, 'album');
+		const info = new AlbumInfo(response);
+
+		try {
+			const response = await axios.get(`https://api.spotify.com/v1/albums/${info.id}`, {
+				headers: { Authorization: `Bearer ${this.access_token}` }
+			});
+
+			const tracks: SearchResponse[] = response.data.tracks.items;
+			for (let track of tracks) {
+				info.tracks.push(new TrackInfo(track));
+			}
+		} catch(error) {
+			LogError(error as AxiosError);
+			throw new Error('Failed to fetch album items');
+		}
+		return info;
 	}
 
 	private async search(query: string, type: string): Promise<SearchResponse> {
@@ -93,7 +120,7 @@ export default class SpotifyGateway {
 						'Content-Type': 'application/json'
 					}
 				});
-				return response.data.tracks.items.at(0);
+				return response.data[type + 's'].items.at(0);
 			} catch (err) {
 				const error = err as AxiosError;
 				LogError(error);

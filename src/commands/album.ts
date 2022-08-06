@@ -4,12 +4,12 @@ import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
 
 export const data = new SlashCommandBuilder()
-	.setName("play")
-	.setDescription("Add a song to the music queue")
+	.setName("album")
+	.setDescription("Add an entire album to the music queue")
 	.addStringOption(option =>
 		option
 			.setName('title')
-			.setDescription('Title of the song')
+			.setDescription('Title of the album')
 			.setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
@@ -17,16 +17,21 @@ export async function execute(interaction: CommandInteraction) {
 		throw new Error('Failed to find your voice channel');
 	}
 	
-	/* Fetch track */
+	/* Fetch album */
 	const spotify = SpotifyGateway.getInstance();
-	const info = await spotify.fetchTrack(interaction.options.get('title', true).value as string);
+	const info = await spotify.fetchAlbum(interaction.options.get('title', true).value as string);
 	interaction.reply(`Enjoy listening to ${info.title}`);
 
-	/* Update the song queue */
-	const track = await spotify.downloadTrack(info);
+	/*
+	** Download all tracks from album
+	** connect to the channel after the first one is downloaded
+	*/
 	const player = MusicPlayer.getInstance();
-	await player.addToQueue(track);
-
-	/* Voice channel connection */
-	await player.connectToChannel(interaction.member);
+	for (let i = 0; i < info.tracks.length; i++) {
+		let track = await spotify.downloadTrack(info.tracks[i]);
+		await player.addToQueue(track);
+		if (i == 0) {
+			await player.connectToChannel(interaction.member);
+		}
+	}
 }
