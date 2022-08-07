@@ -84,6 +84,18 @@ export default class MusicPlayer {
 		this.queue = [];
 	}
 
+	public togglePause() {
+		if (this.player.state.status === AudioPlayerStatus.Playing) {
+			this.player.pause();
+			return true;
+		} else if (this.player.state.status === AudioPlayerStatus.Paused) {
+			this.player.unpause();
+			return false;
+		} else {
+			throw new Error('There is no music playing');
+		}
+	}
+
 	public stop() {
 		this.eventHandler.emit('stop');
 		this.player.stop();
