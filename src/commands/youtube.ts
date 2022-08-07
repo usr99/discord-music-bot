@@ -20,12 +20,13 @@ export async function execute(interaction: CommandInteraction) {
 	/* Fetch track */
 	const youtube = YoutubeGateway.getInstance();
 	const info = await youtube.fetchVideo(interaction.options.get('title', true).value as string);
-	interaction.reply(`Enjoy listening to ${info.title}`);
+	interaction.deferReply();
 
 	/* Update the song queue */
 	const video = await youtube.downloadVideo(info);
 	const player = MusicPlayer.getInstance();
 	await player.addToQueue(video);
+	interaction.followUp(`Enjoy listening to ${info.title}`);
 
 	/* Voice channel connection */
 	await player.connectToChannel(interaction.member);

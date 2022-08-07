@@ -3,7 +3,7 @@ import { parse, toSeconds } from "iso8601-duration";
 import ytdl from "ytdl-core";
 import config from "./config";
 import { Track, TrackInfo, YoutubeSearchResponse, YoutubeVideoResource } from "./types";
-import { LogError } from "./utils";
+import { logError } from "./utils";
 
 export default class YoutubeGateway {
 	public async downloadVideo(info: TrackInfo): Promise<Track> {
@@ -11,7 +11,7 @@ export default class YoutubeGateway {
 			const buffer = await ytdl(info.url, { filter: 'audioonly' });
 			return { buffer, info };
 		} catch(err) {
-			LogError(err as AxiosError);
+			logError(err as AxiosError);
 			throw new Error(`Failed to download ${info.title}`);
 		}
 	}
@@ -36,7 +36,7 @@ export default class YoutubeGateway {
 			});
 			return response.data.items.at(0);
 		} catch (err) {
-			LogError(err as AxiosError);
+			logError(err as AxiosError);
 			throw new Error('Search request to Youtube services failed');
 		}
 	}
@@ -53,7 +53,7 @@ export default class YoutubeGateway {
 			const video = response.data.items.at(0) as YoutubeVideoResource;
 			return toSeconds(parse(video.contentDetails.duration));
 		} catch (err) {
-			LogError(err as AxiosError);
+			logError(err as AxiosError);
 			throw new Error('Failed to retrieve video information');
 		}
 	}

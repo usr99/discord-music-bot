@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
+import { CommandInteraction, MessagePayload } from "discord.js";
 
-function LogError(error: Error | AxiosError) {
+function logError(error: Error | AxiosError) {
 	const GetStringTimestamp = () => {
 		let now = new Date();
 		return `[${now.toLocaleDateString()} ${now.toLocaleTimeString()}]`;
@@ -29,4 +30,12 @@ function LogError(error: Error | AxiosError) {
 	}
 }
 
-export { LogError };
+function reply(interaction: CommandInteraction, message: string | MessagePayload) {
+	if (interaction.replied) {
+		interaction.reply(message);
+	} else {
+		interaction.followUp(message);
+	}
+}
+
+export { logError, reply };

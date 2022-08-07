@@ -1,9 +1,18 @@
-import { ActivityType, Client } from "discord.js";
+import { ActivityType, Client, CommandInteraction } from "discord.js";
 import config from "./config";
 import * as commandModules from "./commands";
 import MusicPlayer from "./MusicPlayer";
+import { reply } from "./utils";
+import { TrackInfo } from "./types";
+import { Command } from "concurrently";
 
 const commands = Object(commandModules);
+const player = MusicPlayer.getInstance();
+let lastInteraction: CommandInteraction | null = null;
+
+function nextSongFollowUp(info: TrackInfo) {
+	lastInteraction?.followUp(`Next song: ${info.title} by ${info.artists}`);
+}
 
 const bot = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
@@ -18,10 +27,16 @@ const bot = new Client({
 
 bot.once("ready", () => {
 	console.log(`Logged in as "${bot.user?.tag}"`);
-	MusicPlayer.getInstance().on('trackChange', (title: string) => {
+	player.event.on('trackChange', (info: TrackInfo) => {
 		bot.user?.setActivity({
 			type: ActivityType.Listening,
-			name: title
+			name: info.title
+		});
+	});
+	player.event.on('stop', () => {
+		bot.user?.setActivity({
+			type: ActivityType.Listening,
+			name: 'rien de spécial'
 		});
 	});
 });
@@ -34,11 +49,18 @@ bot.on('interactionCreate', async interaction => {
 	try {
 		const { commandName } = interaction;
 		await commands[commandName].execute(interaction);
+
+		if (commandName === 'play' || commandName === 'album' || commandName === 'youtube') {
+			lastInteraction = interaction;
+			player.event.off('trackChange', nextSongFollowUp); // remove any previous listener if any
+			player.event.on('trackChange', nextSongFollowUp);
+			console.log(player.event.listeners('trackChange'));
+		}
 	} catch (err) {
 		if (err instanceof Error) {
-			interaction.reply(err.message);
+			reply(interaction, err.message);
 		} else {
-			interaction.reply('Unexpected error, you may check logs for more information');
+			reply(interaction, 'Unexpected error, you may check logs for more information');
 		}
 	}
 });

@@ -3,7 +3,7 @@ import { AxiosError } from "axios";
 import { GuildMember } from "discord.js";
 import EventEmitter from "events";
 import { Track } from "./types";
-import { LogError,  } from "./utils";
+import { logError,  } from "./utils";
 
 export default class MusicPlayer {
 	private queue: Track[];
@@ -21,10 +21,12 @@ export default class MusicPlayer {
 			this.queue.shift();
 			this.next();
 		});
-	}
-
-	public on(event: string, cb: (...args: any[]) => void) {
-		this.eventHandler.on(event, cb);
+		this.player.on('error', err => {
+			console.error('ABORTED ECONNRESET');
+			console.error(err.name);
+			console.error(err.message);
+			console.error(err.resource.playbackDuration);
+		});
 	}
 
 	public async addToQueue(track: Track) {
@@ -54,7 +56,7 @@ export default class MusicPlayer {
 				connection.subscribe(this.player);
 			} catch (error) {
 				this.stop();
-				LogError(error as AxiosError);
+				logError(error as Error);
 				throw new Error('Failed to establish a voice connection');
 			}
 		}
@@ -67,9 +69,10 @@ export default class MusicPlayer {
 			this.player.play(audio);
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5e3);
-				this.eventHandler.emit('trackChange', track.info.title);
-			} catch {
+				this.eventHandler.emit('trackChange', track.info);
+			} catch(error) {
 				this.stop();
+				logError(error as Error);
 				throw new Error(`Failed to play ${track.info.title}`);
 			}
 		} else {
@@ -82,12 +85,16 @@ export default class MusicPlayer {
 	}
 
 	public stop() {
-		this.eventHandler.emit('trackChange', 'rien de spécial');
+		this.eventHandler.emit('stop');
 		this.player.stop();
 		if (this.guildId) {
 			getVoiceConnection(this.guildId)?.destroy();
 			this.guildId = null;
 		}
+	}
+
+	public get event() {
+		return this.eventHandler;
 	}
 
 	public static getInstance(): MusicPlayer {

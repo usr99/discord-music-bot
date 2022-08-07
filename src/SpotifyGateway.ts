@@ -4,7 +4,7 @@ import SpotifyFetcher from "spotifydl-core/dist/Spotify";
 import { Readable } from "stream";
 import config from "./config";
 import { AlbumInfo, SpotifySearchResponse, Track, TrackInfo } from "./types";
-import { LogError } from "./utils";
+import { logError } from "./utils";
 
 export default class SpotifyGateway {
 	private constructor() {
@@ -20,7 +20,7 @@ export default class SpotifyGateway {
 			const buffer = await this.downloader.downloadTrack(info.url);
 			return { buffer: Readable.from(buffer), info };
 		} catch(err) {
-			LogError(err as AxiosError);
+			logError(err as AxiosError);
 			throw new Error(`Failed to download ${info.title}`);
 		}
 	}
@@ -44,7 +44,7 @@ export default class SpotifyGateway {
 				info.tracks.push(new TrackInfo(track));
 			}
 		} catch(error) {
-			LogError(error as AxiosError);
+			logError(error as AxiosError);
 			throw new Error('Failed to fetch album items');
 		}
 		return info;
@@ -72,7 +72,7 @@ export default class SpotifyGateway {
 				return response.data[type + 's'].items.at(0);
 			} catch (err) {
 				const error = err as AxiosError;
-				LogError(error);
+				logError(error);
 				if (error.response) {
 					if (error.response.status === 401) {
 						if (!first_try) {
@@ -107,7 +107,7 @@ export default class SpotifyGateway {
 			}
 			return response.data.access_token;
 		} catch(err) {
-			LogError(err as AxiosError);
+			logError(err as AxiosError);
 			throw new Error('Failure when attempting to connect to Spotify');
 		}
 	}
