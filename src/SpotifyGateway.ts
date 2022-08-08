@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Spotify from "spotifydl-core/dist";
 import SpotifyFetcher from "spotifydl-core/dist/Spotify";
 import { Readable } from "stream";
@@ -15,6 +15,41 @@ export default class SpotifyGateway {
 		this.access_token = null;
 	}
 
+	public async fetchTrack(query: string): Promise<TrackInfo> {
+		const response = await this.search(query, 'track');
+		return new TrackInfo(response);
+	}
+
+	public async fetchAlbum(query: string): Promise<AlbumInfo> {
+		const response = await this.search(query, 'album');
+		const info = new AlbumInfo(response);
+
+		const tracks = await this.request<SpotifySearchResponse[]>({
+				method: 'get',
+				url: `https://api.spotify.com/v1/albums/${info.id}`
+			},
+			response => { return response.data.tracks.items; }
+		);
+
+		for (let track of tracks) {
+			info.tracks.push(new TrackInfo(track));
+		}
+		return info;
+	}
+
+	public async fetchSuggestions(from: TrackInfo): Promise<TrackInfo[]> {
+		const results = await this.request<SpotifySearchResponse[]>({
+			method: 'get',
+			url: 'https://api.spotify.com/v1/recommendations',
+			params: { seed_tracks: from.id }},
+			response => { return response.data.tracks; }
+		);
+
+		return results.map(item => {
+			return new TrackInfo(item);
+		});
+	}
+
 	public async downloadTrack(info: TrackInfo): Promise<Track> {
 		try {
 			const buffer = await this.downloader.downloadTrack(info.url);
@@ -25,32 +60,7 @@ export default class SpotifyGateway {
 		}
 	}
 
-	public async fetchTrack(query: string): Promise<TrackInfo> {
-		const response = await this.search(query, 'track');
-		return new TrackInfo(response);
-	}
-
-	public async fetchAlbum(query: string): Promise<AlbumInfo> {
-		const response = await this.search(query, 'album');
-		const info = new AlbumInfo(response);
-
-		try {
-			const response = await axios.get(`https://api.spotify.com/v1/albums/${info.id}`, {
-				headers: { Authorization: `Bearer ${this.access_token}` }
-			});
-
-			const tracks: SpotifySearchResponse[] = response.data.tracks.items;
-			for (let track of tracks) {
-				info.tracks.push(new TrackInfo(track));
-			}
-		} catch(error) {
-			logError(error as AxiosError);
-			throw new Error('Failed to fetch album items');
-		}
-		return info;
-	}
-
-	private async search(query: string, type: string): Promise<SpotifySearchResponse> {
+	private async request<ApiResponseType>(config: AxiosRequestConfig, cb: (res: AxiosResponse<any, any>) => ApiResponseType) {
 		let first_try = true;
 		while (true) {
 			if (!this.access_token) {
@@ -58,18 +68,9 @@ export default class SpotifyGateway {
 			}
 			
 			try {
-				const response = await axios.get('https://api.spotify.com/v1/search', {
-					params: {
-						q: query,
-						type: type,
-						limit: 1
-					},
-					headers: {
-						Authorization: `Bearer ${this.access_token}`,
-						'Content-Type': 'application/json'
-					}
-				});
-				return response.data[type + 's'].items.at(0);
+				config.headers = { Authorization: `Bearer ${this.access_token}` };
+				const response = await axios.request(config);
+				return cb(response);
 			} catch (err) {
 				const error = err as AxiosError;
 				logError(error);
@@ -85,9 +86,22 @@ export default class SpotifyGateway {
 						throw new Error('Rate limit exceeded');
 					}
 				}
-				throw new Error('Search request to Spotify services failed');
+				throw new Error('Request to Spotify services failed');
 			}
 		}
+	}
+
+	private async search(query: string, type: string): Promise<SpotifySearchResponse> {
+		return await this.request<SpotifySearchResponse>({
+			method: 'get',
+			url: 'https://api.spotify.com/v1/search',
+			params: {
+				q: query,
+				type: type,
+				limit: 1
+			}},
+			response => { return response.data[type + 's'].items.at(0); }
+		);
 	}
 
 	private async getAccessToken(): Promise<string> {
