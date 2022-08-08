@@ -21,7 +21,7 @@ export async function execute(interaction: CommandInteraction) {
 	/* Fetch track */
 	const spotify = SpotifyGateway.getInstance();
 	const info = await spotify.fetchTrack(interaction.options.get('title', true).value as string);
-	interaction.deferReply();
+	await interaction.deferReply();
 
 	/* Update the song queue */
 	const track = await spotify.downloadTrack(info);

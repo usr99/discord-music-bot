@@ -20,7 +20,7 @@ export async function execute(interaction: CommandInteraction) {
 	/* Fetch album */
 	const spotify = SpotifyGateway.getInstance();
 	const info = await spotify.fetchAlbum(interaction.options.get('title', true).value as string);
-	interaction.deferReply();
+	await interaction.deferReply();
 
 	/*
 	** Download all tracks from album

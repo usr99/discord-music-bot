@@ -20,7 +20,7 @@ export async function execute(interaction: CommandInteraction) {
 	/* Fetch track */
 	const youtube = YoutubeGateway.getInstance();
 	const info = await youtube.fetchVideo(interaction.options.get('title', true).value as string);
-	interaction.deferReply();
+	await interaction.deferReply();
 
 	/* Update the song queue */
 	const video = await youtube.downloadVideo(info);
