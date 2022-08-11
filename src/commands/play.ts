@@ -1,8 +1,11 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, GuildMember } from "discord.js";
+import YouTube from "youtube-sr";
+import ytdl from "ytdl-core";
 import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
-import { TrackInfo } from "../types";
+import { Metadata } from "../types";
+import { download, search } from "../utils";
 
 export const data = new SlashCommandBuilder()
 	.setName("play")
@@ -18,17 +21,17 @@ export async function execute(interaction: CommandInteraction) {
 		throw new Error('Failed to find your voice channel');
 	}
 	
-	/* Fetch track */
-	const spotify = SpotifyGateway.getInstance();
-	const info = await spotify.fetchTrack(interaction.options.get('title', true).value as string);
-	await interaction.deferReply();
+	/* Fetch the video on youtube */
+	const track = await SpotifyGateway.getInstance().fetchTrack(interaction.options.get('title', true).value as string);
+	const video = await search(track.name);
+	const buffer = await download(video);
 
 	/* Update the song queue */
-	const track = await spotify.downloadTrack(info);
 	const player = MusicPlayer.getInstance();
-	await player.addToQueue(track);
-	interaction.followUp(`Enjoy listening to ${info.title}`);
+	await player.addToQueue(Metadata.from(video, track), buffer);
 
-	/* Voice channel connection */
+	/* Connection to user's voice channel */
 	await player.connectToChannel(interaction.member);
+
+	interaction.reply(`Enjoy listening to ${track.name} by ${track.artists.at(0)?.name}`);
 }

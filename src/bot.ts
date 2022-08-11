@@ -3,15 +3,15 @@ import config from "./config";
 import * as commandModules from "./commands";
 import MusicPlayer from "./MusicPlayer";
 import { reply } from "./utils";
-import { TrackInfo } from "./types";
-import { Command } from "concurrently";
+import { Video } from "youtube-sr";
+import { Metadata } from "./types";
 
 const commands = Object(commandModules);
 const player = MusicPlayer.getInstance();
 let lastInteraction: CommandInteraction | null = null;
 
-function nextSongFollowUp(info: TrackInfo) {
-	lastInteraction?.followUp(`Next song: ${info.title} by ${info.artists}`);
+function nextSongFollowUp(info: Metadata) {
+	lastInteraction?.followUp(`Next song: ${info.title} by ${info.artist}`);
 }
 
 const bot = new Client({
@@ -27,7 +27,7 @@ const bot = new Client({
 
 bot.once("ready", () => {
 	console.log(`Logged in as "${bot.user?.tag}"`);
-	player.event.on('trackChange', (info: TrackInfo) => {
+	player.event.on('trackChange', (info: Video) => {
 		bot.user?.setActivity({
 			type: ActivityType.Listening,
 			name: info.title
@@ -54,7 +54,6 @@ bot.on('interactionCreate', async interaction => {
 			lastInteraction = interaction;
 			player.event.off('trackChange', nextSongFollowUp); // remove any previous listener if any
 			player.event.on('trackChange', nextSongFollowUp);
-			console.log(player.event.listeners('trackChange'));
 		}
 	} catch (err) {
 		if (err instanceof Error) {

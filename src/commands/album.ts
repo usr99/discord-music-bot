@@ -1,7 +1,11 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, GuildMember } from "discord.js";
+import { Readable } from "stream";
+import { Video } from "youtube-sr";
 import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
+import { Metadata } from "../types";
+import { download, search } from "../utils";
 
 export const data = new SlashCommandBuilder()
 	.setName("album")
@@ -16,23 +20,30 @@ export async function execute(interaction: CommandInteraction) {
 	if (!(interaction.member instanceof GuildMember)) {
 		throw new Error('Failed to find your voice channel');
 	}
-	
-	/* Fetch album */
-	const spotify = SpotifyGateway.getInstance();
-	const info = await spotify.fetchAlbum(interaction.options.get('title', true).value as string);
 	await interaction.deferReply();
+	
+	/* Fetch album from Spotify API */
+	const spotify = SpotifyGateway.getInstance();
+	const album = await spotify.fetchAlbum(interaction.options.get('title', true).value as string);
 
-	/*
-	** Download all tracks from album
-	** connect to the channel after the first one is downloaded
-	*/
-	const player = MusicPlayer.getInstance();
-	for (let i = 0; i < info.tracks.length; i++) {
-		let track = await spotify.downloadTrack(info.tracks[i]);
-		await player.addToQueue(track);
-		if (i == 0) {
-			interaction.followUp(`Enjoy listening to ${info.title}`);
-			await player.connectToChannel(interaction.member);
-		}
+	/* Download all tracks from album */
+	let musics: { video: Video, buffer: Promise<Readable> }[] = [];
+	for (let track of album.tracks) {
+		const video = await search(`${track.name} ${track.artists[0].name}`);
+		musics.push({ video, buffer: download(video) });
 	}
+
+	/* Update the song queue */
+	const player = MusicPlayer.getInstance();
+	for (let i = 0; i < musics.length; i++) {
+		player.addToQueue(
+			Metadata.from(musics[i].video, album.tracks[i]),
+			await musics[i].buffer
+		);
+	}
+
+	/* Connection to user's voice channel */
+	await player.connectToChannel(interaction.member);
+	
+	interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
 }

@@ -1,5 +1,20 @@
 import axios, { AxiosError } from "axios";
 import { CommandInteraction, MessagePayload } from "discord.js";
+import { Readable } from "stream";
+import YouTube, { Video } from "youtube-sr";
+import ytdl from "ytdl-core";
+
+async function search(query: string): Promise<Video> {
+	const results = await YouTube.search(query, { limit: 1, type: 'video' });
+	if (results.length < 1) {
+		throw new Error('Video not found');
+	}
+	return results[0];
+}
+
+async function download(video: Video): Promise<Readable> {
+	return await ytdl(video.url, { filter: 'audioonly' });
+}
 
 function logError(error: Error | AxiosError) {
 	const GetStringTimestamp = () => {
@@ -38,4 +53,4 @@ function reply(interaction: CommandInteraction, message: string | MessagePayload
 	}
 }
 
-export { logError, reply };
+export { search, download, logError, reply };

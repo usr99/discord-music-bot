@@ -1,64 +1,59 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import Spotify from "spotifydl-core/dist";
-import SpotifyFetcher from "spotifydl-core/dist/Spotify";
-import { Readable } from "stream";
 import config from "./config";
-import { AlbumInfo, SpotifySearchResponse, Track, TrackInfo } from "./types";
+import { SpotifyAlbum, SpotifyTrack } from "./types";
 import { logError } from "./utils";
 
 export default class SpotifyGateway {
 	private constructor() {
-		this.downloader = new Spotify({
-			clientId: config.SPOTIFY_CLIENT_ID,
-			clientSecret: config.SPOTIFY_CLIENT_SECRET
-		});
 		this.access_token = null;
 	}
 
-	public async fetchTrack(query: string): Promise<TrackInfo> {
-		const response = await this.search(query, 'track');
-		return new TrackInfo(response);
+	public fetchTrack(query: string): Promise<SpotifyTrack> {
+		return this.request<SpotifyTrack>({
+			method: 'get',
+			url: 'https://api.spotify.com/v1/search',
+			params: {
+				q: query,
+				type: 'track',
+				limit: 1
+			}},
+			response => { return response.data.tracks.items.at(0); }
+		);
 	}
 
-	public async fetchAlbum(query: string): Promise<AlbumInfo> {
-		const response = await this.search(query, 'album');
-		const info = new AlbumInfo(response);
+	public async fetchAlbum(query: string): Promise<SpotifyAlbum> {
+		const album = await this.request<SpotifyAlbum>({
+			method: 'get',
+			url: 'https://api.spotify.com/v1/search',
+			params: {
+				q: query,
+				type: 'album',
+				limit: 1
+			}},
+			response => { return response.data.albums.items.at(0); }
+		);
 
-		const tracks = await this.request<SpotifySearchResponse[]>({
+		album.tracks = await this.request<SpotifyTrack[]>({
 				method: 'get',
-				url: `https://api.spotify.com/v1/albums/${info.id}`
+				url: `https://api.spotify.com/v1/albums/${album.id}`
 			},
 			response => { return response.data.tracks.items; }
 		);
-
-		for (let track of tracks) {
-			info.tracks.push(new TrackInfo(track));
-		}
-		return info;
+		return album;
 	}
 
-	public async fetchSuggestions(from: TrackInfo): Promise<TrackInfo[]> {
-		const results = await this.request<SpotifySearchResponse[]>({
-			method: 'get',
-			url: 'https://api.spotify.com/v1/recommendations',
-			params: { seed_tracks: from.id }},
-			response => { return response.data.tracks; }
-		);
+	// public async fetchSuggestions(from: TrackInfo): Promise<TrackInfo[]> {
+	// 	const results = await this.request<SpotifySearchResponse[]>({
+	// 		method: 'get',
+	// 		url: 'https://api.spotify.com/v1/recommendations',
+	// 		params: { seed_tracks: from.id }},
+	// 		response => { return response.data.tracks; }
+	// 	);
 
-		return results.map(item => {
-			return new TrackInfo(item);
-		});
-	}
-
-	public async downloadTrack(info: TrackInfo): Promise<Track> {
-		try {
-			const buffer = await this.downloader.downloadTrack(info.url);
-			return { buffer: Readable.from(buffer), info };
-		} catch(err) {
-			logError(err as AxiosError);
-			throw new Error(`Failed to download ${info.title}`);
-		}
-	}
+	// 	return results.map(item => {
+	// 		return new TrackInfo(item);
+	// 	});
+	// }
 
 	private async request<ApiResponseType>(config: AxiosRequestConfig, cb: (res: AxiosResponse<any, any>) => ApiResponseType) {
 		let first_try = true;
@@ -91,19 +86,6 @@ export default class SpotifyGateway {
 		}
 	}
 
-	private async search(query: string, type: string): Promise<SpotifySearchResponse> {
-		return await this.request<SpotifySearchResponse>({
-			method: 'get',
-			url: 'https://api.spotify.com/v1/search',
-			params: {
-				q: query,
-				type: type,
-				limit: 1
-			}},
-			response => { return response.data[type + 's'].items.at(0); }
-		);
-	}
-
 	private async getAccessToken(): Promise<string> {
 		try {
 			const auth_string = Buffer.from(config.SPOTIFY_CLIENT_ID + ':' + config.SPOTIFY_CLIENT_SECRET).toString('base64');
@@ -126,7 +108,6 @@ export default class SpotifyGateway {
 		}
 	}
 
-	private downloader: SpotifyFetcher;
 	private access_token: string | null;
 
 	public static getInstance(): SpotifyGateway {

@@ -1,24 +1,34 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
-import { AxiosError } from "axios";
 import { GuildMember } from "discord.js";
 import EventEmitter from "events";
-import { Track } from "./types";
-import { logError,  } from "./utils";
+import { Readable } from "stream";
+import { Metadata } from "./types";
+import { logError } from "./utils";
 
 export default class MusicPlayer {
-	private queue: Track[];
+	private queue: AudioResource<Metadata>[];
 	private player: AudioPlayer;
 	private guildId: string | null;
 	private eventHandler: EventEmitter;
+	private autoplay: boolean;
 
 	private constructor() {
 		this.queue = [];
 		this.player = createAudioPlayer();
 		this.guildId = null;
 		this.eventHandler = new EventEmitter;
+		this.autoplay = true;
 
 		this.player.on(AudioPlayerStatus.Idle, async () => {
-			this.queue.shift();
+			const last = this.queue.shift();
+
+			if (this.autoplay && this.queue.length === 0) {
+				// fetch
+				// download
+				// add to queue
+			}
+			console.log('auto next');
+			console.log(`queue: ${this.queue.length} tracks`);
 			this.next();
 		});
 		this.player.on('error', err => {
@@ -29,8 +39,8 @@ export default class MusicPlayer {
 		});
 	}
 
-	public async addToQueue(track: Track) {
-		this.queue.push(track);
+	public async addToQueue(info: Metadata, buffer: Readable) {
+		this.queue.push(createAudioResource(buffer, { metadata: info }));
 		if (this.player.state.status === AudioPlayerStatus.Idle) {
 			this.next();
 		}
@@ -62,18 +72,17 @@ export default class MusicPlayer {
 		}
 	}
 
-	public async next() {
-		const track = this.queue.at(0);
-		if (track) {
-			const audio = createAudioResource(track.buffer);
-			this.player.play(audio);
+	public async next(forceNextSong: boolean = false) {
+		const music = forceNextSong ? this.queue.shift() : this.queue.at(0);
+		if (music) {
+			this.player.play(music);
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5e3);
-				this.eventHandler.emit('trackChange', track.info);
+				this.eventHandler.emit('trackChange', music.metadata);
 			} catch(error) {
 				this.stop();
 				logError(error as Error);
-				throw new Error(`Failed to play ${track.info.title}`);
+				throw new Error(`Failed to play ${music.metadata.title}`);
 			}
 		} else {
 			this.stop();
