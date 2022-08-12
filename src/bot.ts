@@ -2,7 +2,7 @@ import { ActivityType, Client, CommandInteraction } from "discord.js";
 import config from "./config";
 import * as commandModules from "./commands";
 import MusicPlayer from "./MusicPlayer";
-import { reply } from "./utils";
+import { logError, reply } from "./utils";
 import { Video } from "youtube-sr";
 import { Metadata } from "./types";
 
@@ -11,7 +11,7 @@ const player = MusicPlayer.getInstance();
 let lastInteraction: CommandInteraction | null = null;
 
 function nextSongFollowUp(info: Metadata) {
-	lastInteraction?.followUp(`Next song: ${info.title} by ${info.artist}`);
+	lastInteraction?.followUp(`Now playing ${info.title} by ${info.artist}`);
 }
 
 const bot = new Client({
@@ -56,10 +56,14 @@ bot.on('interactionCreate', async interaction => {
 			player.event.on('trackChange', nextSongFollowUp);
 		}
 	} catch (err) {
-		if (err instanceof Error) {
-			reply(interaction, err.message);
-		} else {
-			reply(interaction, 'Unexpected error, you may check logs for more information');
+		try {
+			if (err instanceof Error) {
+				await reply(interaction, err.message);
+			} else {
+				await reply(interaction, 'Unexpected error, you may check logs for more information');
+			}
+		} catch (err) {
+			logError(err as Error);
 		}
 	}
 });

@@ -9,9 +9,9 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
 	const player = MusicPlayer.getInstance();
 	const isPaused = player.togglePause();
-	if (isPaused) {
-		interaction.reply(':pause_button: Music paused');
-	} else {
-        interaction.reply(':arrow_forward: Music resumed');
-	}
+	await interaction.reply(
+		isPaused ?
+		':pause_button: Music paused' :
+		':arrow_forward: Music resumed'
+	);
 }

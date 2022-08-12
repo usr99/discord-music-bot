@@ -7,9 +7,8 @@ export const data = new SlashCommandBuilder()
 	.setDescription("Play the next song in queue")
 
 export async function execute(interaction: CommandInteraction) {
-	const player = MusicPlayer.getInstance();
-	await player.next(true);
-	interaction.reply({
+	await MusicPlayer.getInstance().next(true);
+	await interaction.reply({
 		content: "I hope the next song will be more to your liking :)",
 		ephemeral: true
 	});

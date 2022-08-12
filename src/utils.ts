@@ -45,11 +45,11 @@ function logError(error: Error | AxiosError) {
 	}
 }
 
-function reply(interaction: CommandInteraction, message: string | MessagePayload) {
-	if (interaction.replied) {
-		interaction.reply(message);
+async function reply(interaction: CommandInteraction, message: string | MessagePayload) {
+	if (!interaction.replied) {
+		await interaction.reply(message);
 	} else {
-		interaction.followUp(message);
+		await interaction.followUp(message);
 	}
 }
 

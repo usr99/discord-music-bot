@@ -25,6 +25,9 @@ export async function execute(interaction: CommandInteraction) {
 	/* Fetch album from Spotify API */
 	const spotify = SpotifyGateway.getInstance();
 	const album = await spotify.fetchAlbum(interaction.options.get('title', true).value as string);
+	if (!album) {
+		throw new Error('Album not found');
+	}
 
 	/* Download all tracks from album */
 	let musics: { video: Video, buffer: Promise<Readable> }[] = [];
@@ -44,6 +47,6 @@ export async function execute(interaction: CommandInteraction) {
 
 	/* Connection to user's voice channel */
 	await player.connectToChannel(interaction.member);
-	
-	interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
+
+	await interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
 }

@@ -20,18 +20,24 @@ export async function execute(interaction: CommandInteraction) {
 	if (!(interaction.member instanceof GuildMember)) {
 		throw new Error('Failed to find your voice channel');
 	}
-	
+	await interaction.deferReply();
+
 	/* Fetch the video on youtube */
-	const track = await SpotifyGateway.getInstance().fetchTrack(interaction.options.get('title', true).value as string);
-	const video = await search(track.name);
+	const query = interaction.options.get('title', true).value as string;
+	const track = await SpotifyGateway.getInstance().fetchTrack(query);
+	const video = await search(track ? track.name : query);
+	if (!video) {
+		throw new Error('Video not found');
+	}
 	const buffer = await download(video);
 
 	/* Update the song queue */
 	const player = MusicPlayer.getInstance();
-	await player.addToQueue(Metadata.from(video, track), buffer);
+	const info = Metadata.from(video, track);
+	await player.addToQueue(info, buffer);
 
 	/* Connection to user's voice channel */
 	await player.connectToChannel(interaction.member);
 
-	interaction.reply(`Enjoy listening to ${track.name} by ${track.artists.at(0)?.name}`);
+	await interaction.followUp(`Enjoy listening to ${info.title} by ${info.artist}`);
 }
