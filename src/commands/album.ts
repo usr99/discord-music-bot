@@ -20,7 +20,6 @@ export async function execute(interaction: CommandInteraction) {
 	if (!(interaction.member instanceof GuildMember)) {
 		throw new Error('Failed to find your voice channel');
 	}
-	await interaction.deferReply();
 	
 	/* Fetch album from Spotify API */
 	const spotify = SpotifyGateway.getInstance();
@@ -36,17 +35,16 @@ export async function execute(interaction: CommandInteraction) {
 		musics.push({ video, buffer: download(video) });
 	}
 
-	/* Update the song queue */
+	/* Connection to user's voice channel */
 	const player = MusicPlayer.getInstance();
+	await player.connectToChannel(interaction.member);
+
+	/* Update the song queue */
+	await interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
 	for (let i = 0; i < musics.length; i++) {
 		player.addToQueue(
 			Metadata.from(musics[i].video, album.tracks[i]),
 			await musics[i].buffer
 		);
 	}
-
-	/* Connection to user's voice channel */
-	await player.connectToChannel(interaction.member);
-
-	await interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
 }

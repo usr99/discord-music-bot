@@ -21,20 +21,30 @@ export interface SpotifyAlbum extends SpotifyResponse {
 
 export class Metadata {
 	private constructor(
-		public title: string,
-		public artist: string,
 		public url: string,
-		public thumbnail: string,
-		public duration: number
+		public title?: string,
+		public artist?: string,
+		public thumbnail?: string,
+		public duration?: number
 	) {}
 
-	static from(youtube: Video, spotify: SpotifyTrack) {
-		return new Metadata(
-			spotify.name,
-			spotify.artists.map(artist => { return artist.name; }).join(' & '),
-			youtube.url,
-			youtube.thumbnail?.url || 'undefined',
-			youtube.duration
-		);
+	static from(youtube: Video, spotify?: SpotifyTrack) {
+		if (spotify) {
+			return new Metadata(
+				youtube.url,
+				spotify.name,
+				spotify.artists.map(artist => { return artist.name; }).join(' & '),
+				youtube.thumbnail?.url,
+				youtube.duration
+			);
+		} else {
+			return new Metadata(
+				youtube.url,
+				youtube.title,
+				youtube.channel?.name,
+				youtube.thumbnail?.url,
+				youtube.duration
+			);
+		}
 	}
 }

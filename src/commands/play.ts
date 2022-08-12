@@ -20,7 +20,6 @@ export async function execute(interaction: CommandInteraction) {
 	if (!(interaction.member instanceof GuildMember)) {
 		throw new Error('Failed to find your voice channel');
 	}
-	await interaction.deferReply();
 
 	/* Fetch the video on youtube */
 	const query = interaction.options.get('title', true).value as string;
@@ -31,13 +30,12 @@ export async function execute(interaction: CommandInteraction) {
 	}
 	const buffer = await download(video);
 
-	/* Update the song queue */
-	const player = MusicPlayer.getInstance();
-	const info = Metadata.from(video, track);
-	await player.addToQueue(info, buffer);
-
 	/* Connection to user's voice channel */
+	const player = MusicPlayer.getInstance();
 	await player.connectToChannel(interaction.member);
 
+	/* Update the song queue */
+	const info = Metadata.from(video, track);
 	await interaction.followUp(`Enjoy listening to ${info.title} by ${info.artist}`);
+	await player.addToQueue(info, buffer);
 }

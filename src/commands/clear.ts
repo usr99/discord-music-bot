@@ -9,5 +9,5 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
 	const player = MusicPlayer.getInstance();
 	player.clear();
-	await interaction.reply(':put_litter_in_its_place: Clearing the queue...');
+	await interaction.followUp(':put_litter_in_its_place: Clearing the queue...');
 }

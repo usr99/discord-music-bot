@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
 import { GuildMember } from "discord.js";
 import EventEmitter from "events";
 import { Readable } from "stream";
@@ -17,32 +17,45 @@ export default class MusicPlayer {
 		this.player = createAudioPlayer();
 		this.guildId = null;
 		this.eventHandler = new EventEmitter;
-		this.autoplay = true;
+		this.autoplay = false;
 
 		this.player.on(AudioPlayerStatus.Idle, async () => {
 			const last = this.queue.shift();
 
-			if (this.autoplay && this.queue.length === 0) {
+			if (this.queue.length === 0) {
+
+
+				if (this.autoplay) {
+
+				} else {
+					entersState(this.player, AudioPlayerStatus.Buffering, 10e3)
+					.catch(() => { this.stop(); });
+				}
+
 				// fetch
 				// download
 				// add to queue
+			} else {
+				// console.log('auto next');
+				// console.log(`queue: ${this.queue.length} tracks`);
+	
+				this.next();
 			}
-			console.log('auto next');
-			console.log(`queue: ${this.queue.length} tracks`);
-			this.next();
 		});
 		this.player.on('error', err => {
 			console.error('ABORTED ECONNRESET');
 			console.error(err.name);
 			console.error(err.message);
-			console.error(err.resource.playbackDuration);
+			console.error(err.resource);
 		});
 	}
 
 	public async addToQueue(info: Metadata, buffer: Readable) {
 		this.queue.push(createAudioResource(buffer, { metadata: info }));
-		if (this.player.state.status === AudioPlayerStatus.Idle) {
-			this.next();
+
+		const status = this.player.state.status;
+		if (status === AudioPlayerStatus.Idle || status === AudioPlayerStatus.AutoPaused) {
+			await this.next();
 		}
 	}
 	
@@ -73,7 +86,11 @@ export default class MusicPlayer {
 	}
 
 	public async next(forceNextSong: boolean = false) {
-		const music = forceNextSong ? this.queue.shift() : this.queue.at(0);
+		if (forceNextSong) {
+			this.queue.shift();
+		}
+
+		const music = this.queue.at(0);
 		if (music) {
 			this.player.play(music);
 			try {
