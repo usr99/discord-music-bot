@@ -17,3 +17,8 @@ SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 
 ```
+
+# Missing features
+- embeds
+- `/queue` command
+- some errors still need some proper handling
