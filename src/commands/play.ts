@@ -23,8 +23,7 @@ export async function execute(interaction: CommandInteraction) {
 
 	/* Fetch the video on youtube */
 	const query = interaction.options.get('title', true).value as string;
-	const track = await SpotifyGateway.getInstance().fetchTrack(query);
-	const video = await search(track ? track.name : query);
+	const video = await search(query);
 	if (!video) {
 		throw new Error('Video not found');
 	}
@@ -35,7 +34,7 @@ export async function execute(interaction: CommandInteraction) {
 	await player.connectToChannel(interaction.member);
 
 	/* Update the song queue */
-	const info = Metadata.from(video, track);
+	const info = Metadata.from(video, undefined);
 	await interaction.followUp(`Enjoy listening to ${info.title} by ${info.artist}`);
 	await player.addToQueue(info, buffer);
 }
