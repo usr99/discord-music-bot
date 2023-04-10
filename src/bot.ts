@@ -5,14 +5,15 @@ import MusicPlayer from "./MusicPlayer";
 import { logError, reply } from "./utils";
 import { Video } from "youtube-sr";
 import { Metadata } from "./types";
+import { NowPlayingEmbed } from "./embeds";
 
 const commands = Object(commandModules);
 const player = MusicPlayer.getInstance();
 let lastInteraction: CommandInteraction | null = null;
 
-function nextSongFollowUp(info: Metadata) {
-	lastInteraction?.followUp(`Now playing ${info.title} by ${info.artist}`)
-	.catch(error => logError(error));
+function nextSongFollowUp(music: Metadata, queue: number) {
+	lastInteraction?.followUp(new NowPlayingEmbed({music, queue}).toMessage())
+		.catch(error => logError(error));
 }
 
 const bot = new Client({

@@ -6,6 +6,7 @@ import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
 import { Metadata } from "../types";
 import { download, search } from "../utils";
+import { AddAlbumEmbed } from "../embeds";
 
 export const data = new SlashCommandBuilder()
 	.setName("album")
@@ -40,7 +41,7 @@ export async function execute(interaction: CommandInteraction) {
 	await player.connectToChannel(interaction.member);
 
 	/* Update the song queue */
-	await interaction.followUp(`Enjoy listening to ${album.name} by ${album.artists.at(0)?.name}`);
+	await interaction.followUp(new AddAlbumEmbed(album).toMessage());
 	for (let i = 0; i < musics.length; i++) {
 		player.addToQueue(
 			Metadata.from(musics[i].video, album.tracks[i]),

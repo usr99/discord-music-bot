@@ -1,5 +1,5 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
-import { GuildMember } from "discord.js";
+import { CommandInteraction, GuildMember } from "discord.js";
 import EventEmitter from "events";
 import { Readable } from "stream";
 import { Metadata } from "./types";
@@ -23,8 +23,6 @@ export default class MusicPlayer {
 			const last = this.queue.shift();
 
 			if (this.queue.length === 0) {
-
-
 				if (this.autoplay) {
 
 				} else {
@@ -95,7 +93,7 @@ export default class MusicPlayer {
 			this.player.play(music);
 			try {
 				await entersState(this.player, AudioPlayerStatus.Playing, 5e3);
-				this.eventHandler.emit('trackChange', music.metadata);
+				this.eventHandler.emit('trackChange', music.metadata, this.queue.length);
 			} catch(error) {
 				this.stop();
 				logError(error as Error);

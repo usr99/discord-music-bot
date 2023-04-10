@@ -16,7 +16,12 @@ export interface SpotifyTrack extends SpotifyResponse {
 }
 
 export interface SpotifyAlbum extends SpotifyResponse {
-	tracks: SpotifyTrack[]
+	tracks: SpotifyTrack[],
+	images: {
+		url: string,
+		height: number,
+		width: number
+	}[]
 }
 
 export class Metadata {

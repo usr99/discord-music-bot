@@ -6,6 +6,7 @@ import MusicPlayer from "../MusicPlayer";
 import SpotifyGateway from "../SpotifyGateway";
 import { Metadata } from "../types";
 import { download, search } from "../utils";
+import { AddMusicEmbed } from "../embeds";
 
 export const data = new SlashCommandBuilder()
 	.setName("play")
@@ -35,6 +36,6 @@ export async function execute(interaction: CommandInteraction) {
 
 	/* Update the song queue */
 	const info = Metadata.from(video, undefined);
-	await interaction.followUp(`Enjoy listening to ${info.title} by ${info.artist}`);
+	await interaction.followUp(new AddMusicEmbed(info).toMessage());
 	await player.addToQueue(info, buffer);
 }
