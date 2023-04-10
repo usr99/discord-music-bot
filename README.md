@@ -19,4 +19,5 @@ SPOTIFY_CLIENT_SECRET=
 
 # Missing features
 - `/queue` command
+- autoplay
 - some errors still need some proper handling
